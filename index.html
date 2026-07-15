@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAT/SAT Mängelliste</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#f2f4f7;
+}
+
+header{
+    background:#ffffff;
+    padding:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+h1{
+    margin:0;
+}
+
+.container{
+    padding:15px;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:15px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+
+input,
+textarea,
+select{
+    width:100%;
+    box-sizing:border-box;
+    padding:12px;
+    margin-top:8px;
+    margin-bottom:12px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    font-size:16px;
+}
+
+button{
+    border:none;
+    border-radius:10px;
+    padding:14px;
+    font-size:16px;
+    cursor:pointer;
+}
+
+.primary{
+    background:#007aff;
+    color:white;
+    width:100%;
+}
+
+.delete{
+    background:#ff3b30;
+    color:white;
+}
+
+img.preview{
+    width:100%;
+    max-width:350px;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+.dashboard{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.badge{
+    background:white;
+    padding:10px;
+    border-radius:10px;
+    min-width:120px;
+    text-align:center;
+}
+
+.progress{
+    width:100%;
+    height:18px;
+    background:#ddd;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.progress-bar{
+    height:100%;
+    background:#28a745;
+    width:0%;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>FAT / SAT Mängelliste</h1>
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<h3>Stammdaten</h3>
+
+<select id="abnahmeart">
+<option>FAT</option>
+<option>SAT</option>
+</select>
+
+<input id="ersteller" placeholder="Ersteller">
+
+<input id="datum" type="date">
+
+<input id="anlage" placeholder="Anlagenbezeichnung">
+
+<input id="lieferant" placeholder="Lieferant">
+
+</div>
+
+<div class="card">
+
+<h3>Dashboard</h3>
+
+<div class="dashboard">
+
+<div class="badge">
+<div id="offen">0</div>
+<div>Offen</div>
+</div>
+
+<div class="badge">
+<div id="erledigt">0</div>
+<div>Erledigt</div>
+</div>
+
+<div class="badge">
+<div id="gesamt">0</div>
+<div>Gesamt</div>
+</div>
+
+</div>
+
+<br>
+
+<div class="progress">
+<div id="progressBar" class="progress-bar"></div>
+</div>
+
+</div>
+
+<button class="primary" onclick="neuerMangel()">
++ Neuer Mangel
+</button>
+
+<br><br>
+
+<div id="maengel"></div>
+
+</div>
+
+<script>
+
+let nummer = 0;
+
+function speichern(){
+    localStorage.setItem(
+        "maengelliste",
+        document.getElementById("maengel").innerHTML
+    );
+}
+
+function dashboardAktualisieren(){
+
+    const cards =
+    document.querySelectorAll(".mangel");
+
+    let offen = 0;
+    let erledigt = 0;
+
+    cards.forEach(card=>{
+
+        const status =
+        card.querySelector(".status").value;
+
+        if(status==="Erledigt"){
+            erledigt++;
+        }else{
+            offen++;
+        }
+
+    });
+
+    document.getElementById("offen").innerText = offen;
+    document.getElementById("erledigt").innerText = erledigt;
+    document.getElementById("gesamt").innerText =
+    cards.length;
+
+    const percent =
+    cards.length === 0
+    ? 0
+    : erledigt/cards.length*100;
+
+    document.getElementById("progressBar")
+    .style.width = percent + "%";
+}
+
+function bildLaden(input){
+
+    const file = input.files[0];
+
+    if(!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        const img =
+        input.parentElement
+        .querySelector(".preview");
+
+        img.src = e.target.result;
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function loeschen(button){
+
+    button.parentElement.remove();
+
+    dashboardAktualisieren();
+    speichern();
+}
+
+function neuerMangel(){
+
+    nummer++;
+
+    const div =
+    document.createElement("div");
+
+    div.className = "card mangel";
+
+    div.innerHTML = `
+
+    <h3>Mangel ${nummer}</h3>
+
+    <select class="status"
+        onchange="dashboardAktualisieren()">
+
+        <option>Offen</option>
+        <option>In Bearbeitung</option>
+        <option>Erledigt</option>
+
+    </select>
+
+    <select>
+        <option>Kritisch</option>
+        <option>Hoch</option>
+        <option>Mittel</option>
+        <option>Niedrig</option>
+    </select>
+
+    <input
+    placeholder="Verantwortlicher">
+
+    <input
+    type="date">
+
+    <textarea
+    rows="4"
+    placeholder="Mangelbeschreibung">
+    </textarea>
+
+    <input
+    type="file"
+    accept="image/*">
+
+    <img class="preview">
+
+    <button
+        class="delete"
+        onclick="loeschen(this)">
+        Löschen
+    </button>
+    `;
+
+    const upload =
+    div.querySelector("input[type=file]");
+
+    upload.addEventListener(
+        "change",
+        function(){
+            bildLaden(this);
+        }
+    );
+
+    document
+    .getElementById("maengel")
+    .appendChild(div);
+
+    dashboardAktualisieren();
+    speichern();
+}
+
+document.getElementById("datum").value =
+new Date().toISOString().split("T")[0];
+
+</script>
+
+</body>
+</html>
